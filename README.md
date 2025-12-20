@@ -29,7 +29,8 @@ cd admin.lapp.test && bash run-dev.sh
 ## Key Features
 
 - Domain-based routing with automatic tenant/view detection
-- Tenant-specific views: `resources/views/tenants/{tenant_id}/{code}/`
+- Tenant-specific views: `tenants/{tenant_id}/resources/views/tenants/{tenant_id}/{code}/`
+- Tenant-specific code: `tenants/{tenant_id}/app/Features/Pages/Tenants/{tenant_id}/`
 - Automatic folder creation when adding views
 - Complete helper class with context checking methods
 - Support for multiple views per tenant (all equal, no hierarchy)

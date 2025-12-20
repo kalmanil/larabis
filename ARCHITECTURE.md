@@ -21,14 +21,6 @@ app/
 │   └── Pages/                        # Example: Pages feature
 │       ├── Controllers/
 │       │   └── PageController.php
-│       ├── Tenants/                  # Tenant-specific code
-│       │   └── lapp/
-│       │       ├── Traits/
-│       │       │   └── PageLogic.php  # Tenant-specific (all views)
-│       │       └── Views/             # Tenant-specific view logic
-│       │           └── admin/
-│       │               └── Traits/
-│       │                   └── PageLogic.php  # Lapp's admin-specific logic
 │       └── Views/                    # View-specific code (shared)
 │           ├── default/
 │           │   └── Traits/
@@ -41,7 +33,31 @@ app/
     └── Traits/
         └── Base/
             └── PageLogic.php         # Base trait with shared logic
+
+tenants/                               # Consolidated tenant-specific code
+└── {tenant_id}/
+    ├── app/                          # Tenant-specific classes
+    │   └── Features/
+    │       └── Pages/
+    │           └── Tenants/
+    │               └── {tenant_id}/
+    │                   ├── Traits/
+    │                   │   └── PageLogic.php  # Tenant-specific (all views)
+    │                   └── Views/             # Tenant-specific view logic
+    │                       └── admin/
+    │                           └── Traits/
+    │                               └── PageLogic.php  # Tenant's admin-specific logic
+    └── resources/
+        └── views/
+            └── tenants/
+                └── {tenant_id}/
+                    ├── default/
+                    │   └── *.blade.php
+                    └── admin/
+                        └── *.blade.php
 ```
+
+**Note:** All tenant-specific code (classes, views, etc.) is consolidated in `tenants/{tenant_id}/` for better organization and easier deployment.
 
 ## Namespace Structure
 
@@ -57,20 +73,18 @@ App\Core\Traits\ConstructableTrait
 App\Features\Pages\Controllers\PageController
 ```
 
-### Tenant-Specific
+### Tenant-Specific (Consolidated)
 ```php
+// Located in: tenants/{tenant_id}/app/Features/Pages/Tenants/{tenant_id}/
 App\Features\Pages\Tenants\lapp\Traits\PageLogic  # Tenant logic (all views)
+App\Features\Pages\Tenants\lapp\Views\admin\Traits\PageLogic  # Lapp's admin-specific logic
 ```
 
 ### View-Specific (Shared)
 ```php
+// Located in: app/Features/Pages/Views/
 App\Features\Pages\Views\default\Traits\PageLogic
 App\Features\Pages\Views\admin\Traits\PageLogic  # Base admin logic (all tenants)
-```
-
-### Tenant-Specific View Logic
-```php
-App\Features\Pages\Tenants\lapp\Views\admin\Traits\PageLogic  # Lapp's admin-specific logic
 ```
 
 ### Shared Base
@@ -107,7 +121,7 @@ trait PageLogic
 
 #### Tenant-Specific Trait
 ```php
-// app/Features/Pages/Tenants/lapp/Traits/PageLogic.php
+// tenants/lapp/app/Features/Pages/Tenants/lapp/Traits/PageLogic.php
 namespace App\Features\Pages\Tenants\lapp\Traits;
 
 use App\Core\Traits\ConstructableTrait;
@@ -261,7 +275,7 @@ trait PageLogic
 
 #### Tenant-Specific Admin Trait
 ```php
-// app/Features/Pages/Tenants/lapp/Views/admin/Traits/PageLogic.php
+// tenants/lapp/app/Features/Pages/Tenants/lapp/Views/admin/Traits/PageLogic.php
 namespace App\Features\Pages\Tenants\lapp\Views\admin\Traits;
 
 use App\Features\Pages\Views\admin\Traits\PageLogic as BaseAdminPageLogic;
@@ -306,14 +320,14 @@ use LappPageLogic, BaseAdminPageLogic, LappAdminPageLogic {
 - **Domain**: `lapp.test:8000`
 - **View Code**: `default`
 - **Purpose**: Public landing page
-- **Location**: `resources/views/tenants/lapp/default/home.blade.php`
+- **Location**: `tenants/lapp/resources/views/tenants/lapp/default/home.blade.php`
 - **Usage**: `TenancyHelper::view('home', $data)`
 
 ### Admin View (CMS Login)
 - **Domain**: `admin.lapp.test:8001`
 - **View Code**: `admin`
 - **Purpose**: Admin CMS with mock login
-- **Location**: `resources/views/tenants/lapp/admin/login.blade.php`
+- **Location**: `tenants/lapp/resources/views/tenants/lapp/admin/login.blade.php`
 - **Usage**: `TenancyHelper::view('login', $data)` ⚠️ Note: Use 'login', not 'admin.login'
 
 ### ⚠️ Important: View Path Construction

@@ -25,8 +25,9 @@ php artisan tenant:create lapp \
 
 This automatically creates:
 - Tenant database
-- View folders: `resources/views/tenants/lapp/default/` and `resources/views/tenants/lapp/admin/`
+- View folders: `tenants/lapp/resources/views/tenants/lapp/default/` and `tenants/lapp/resources/views/tenants/lapp/admin/`
 - Starter `home.blade.php` files
+- Tenant directory structure: `tenants/lapp/`
 
 ## 4. Configure Hosts
 
@@ -40,6 +41,11 @@ Add to `/etc/hosts` (Linux/WSL) or `C:\Windows\System32\drivers\etc\hosts`:
 ## 5. Start Development
 
 ```bash
+# Option 1: Start both servers with one command (recommended)
+cd ..
+./run-lapp-dev.sh
+
+# Option 2: Start servers separately
 # Terminal 1: Default view
 cd lapp.test
 bash run-dev.sh

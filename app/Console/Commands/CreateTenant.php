@@ -95,19 +95,34 @@ class CreateTenant extends Command
 
     protected function createViewFolders(string $tenantId, string $code): void
     {
-        $basePath = resource_path("views/tenants/{$tenantId}");
-        $viewPath = "{$basePath}/{$code}";
+        // Use consolidated structure: tenants/{tenant_id}/resources/views/tenants/{tenant_id}/{code}/
+        $tenantBasePath = base_path("tenants/{$tenantId}");
+        $viewsBasePath = "{$tenantBasePath}/resources/views";
+        $tenantViewsPath = "{$viewsBasePath}/tenants/{$tenantId}";
+        $viewPath = "{$tenantViewsPath}/{$code}";
 
-        // Create tenant folder if it doesn't exist
-        if (!File::exists($basePath)) {
-            File::makeDirectory($basePath, 0755, true);
-            $this->line("    Created folder: resources/views/tenants/{$tenantId}/");
+        // Create tenant base directory structure if it doesn't exist
+        if (!File::exists($tenantBasePath)) {
+            File::makeDirectory($tenantBasePath, 0755, true);
+            $this->line("    Created folder: tenants/{$tenantId}/");
+        }
+
+        // Create views directory if it doesn't exist
+        if (!File::exists($viewsBasePath)) {
+            File::makeDirectory($viewsBasePath, 0755, true);
+            $this->line("    Created folder: tenants/{$tenantId}/resources/views/");
+        }
+
+        // Create tenant-specific views directory if it doesn't exist
+        if (!File::exists($tenantViewsPath)) {
+            File::makeDirectory($tenantViewsPath, 0755, true);
+            $this->line("    Created folder: tenants/{$tenantId}/resources/views/tenants/{$tenantId}/");
         }
 
         // Create view code folder if it doesn't exist
         if (!File::exists($viewPath)) {
             File::makeDirectory($viewPath, 0755, true);
-            $this->line("    Created folder: resources/views/tenants/{$tenantId}/{$code}/");
+            $this->line("    Created folder: tenants/{$tenantId}/resources/views/tenants/{$tenantId}/{$code}/");
         }
 
         // Create a basic home.blade.php if it doesn't exist
@@ -115,7 +130,7 @@ class CreateTenant extends Command
         if (!File::exists($homeViewPath)) {
             $homeViewContent = $this->generateHomeView($tenantId, $code);
             File::put($homeViewPath, $homeViewContent);
-            $this->line("    Created starter view: resources/views/tenants/{$tenantId}/{$code}/home.blade.php");
+            $this->line("    Created starter view: tenants/{$tenantId}/resources/views/tenants/{$tenantId}/{$code}/home.blade.php");
         }
     }
 

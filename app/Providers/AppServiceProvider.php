@@ -12,27 +12,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Register tenant class autoloading from consolidated tenants/ directory
-        $tenantsPath = base_path('tenants');
-        
-        if (is_dir($tenantsPath)) {
-            $tenantDirs = array_filter(glob($tenantsPath . '/*'), 'is_dir');
-            
-            foreach ($tenantDirs as $tenantDir) {
-                $appPath = $tenantDir . '/app';
-                
-                if (is_dir($appPath)) {
-                    // Add tenant app directory to autoloader
-                    $loader = require base_path('vendor/autoload.php');
-                    
-                    // Register tenant Features namespace
-                    $featuresPath = $appPath . '/Features';
-                    if (is_dir($featuresPath)) {
-                        $loader->addPsr4("App\\Features\\", $featuresPath);
-                    }
-                }
-            }
-        }
+        // Tenant class autoloading is handled by bootstrap/tenant-autoload.php
+        // which is loaded via composer.json's "files" autoload array.
+        // No need to register autoloaders here as they're already registered early.
     }
 
     /**
