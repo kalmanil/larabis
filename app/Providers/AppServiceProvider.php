@@ -22,17 +22,23 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Add tenant view paths from consolidated tenants/ directory
+        // Register tenant view namespaces from consolidated tenants/ directory
         $tenantsPath = base_path('tenants');
         
         if (is_dir($tenantsPath)) {
             $tenantDirs = array_filter(glob($tenantsPath . '/*'), 'is_dir');
             
             foreach ($tenantDirs as $tenantDir) {
+                $tenantId = basename($tenantDir);
                 $viewsPath = $tenantDir . '/resources/views';
                 
                 if (is_dir($viewsPath)) {
-                    // Add tenant views to Laravel's view finder
+                    // Register namespace for this tenant: tenants.{tenant_id}
+                    // This allows views like: tenants.lapp.default.home
+                    // to resolve to: tenants/lapp/resources/views/default/home.blade.php
+                    View::addNamespace("tenants.{$tenantId}", $viewsPath);
+                    
+                    // Also add as location for fallback
                     View::addLocation($viewsPath);
                 }
             }

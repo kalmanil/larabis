@@ -95,11 +95,10 @@ class CreateTenant extends Command
 
     protected function createViewFolders(string $tenantId, string $code): void
     {
-        // Use consolidated structure: tenants/{tenant_id}/resources/views/tenants/{tenant_id}/{code}/
+        // Use simplified consolidated structure: tenants/{tenant_id}/resources/views/{code}/
         $tenantBasePath = base_path("tenants/{$tenantId}");
         $viewsBasePath = "{$tenantBasePath}/resources/views";
-        $tenantViewsPath = "{$viewsBasePath}/tenants/{$tenantId}";
-        $viewPath = "{$tenantViewsPath}/{$code}";
+        $viewPath = "{$viewsBasePath}/{$code}";
 
         // Create tenant base directory structure if it doesn't exist
         if (!File::exists($tenantBasePath)) {
@@ -113,16 +112,10 @@ class CreateTenant extends Command
             $this->line("    Created folder: tenants/{$tenantId}/resources/views/");
         }
 
-        // Create tenant-specific views directory if it doesn't exist
-        if (!File::exists($tenantViewsPath)) {
-            File::makeDirectory($tenantViewsPath, 0755, true);
-            $this->line("    Created folder: tenants/{$tenantId}/resources/views/tenants/{$tenantId}/");
-        }
-
         // Create view code folder if it doesn't exist
         if (!File::exists($viewPath)) {
             File::makeDirectory($viewPath, 0755, true);
-            $this->line("    Created folder: tenants/{$tenantId}/resources/views/tenants/{$tenantId}/{$code}/");
+            $this->line("    Created folder: tenants/{$tenantId}/resources/views/{$code}/");
         }
 
         // Create a basic home.blade.php if it doesn't exist
@@ -130,7 +123,7 @@ class CreateTenant extends Command
         if (!File::exists($homeViewPath)) {
             $homeViewContent = $this->generateHomeView($tenantId, $code);
             File::put($homeViewPath, $homeViewContent);
-            $this->line("    Created starter view: tenants/{$tenantId}/resources/views/tenants/{$tenantId}/{$code}/home.blade.php");
+            $this->line("    Created starter view: tenants/{$tenantId}/resources/views/{$code}/home.blade.php");
         }
     }
 

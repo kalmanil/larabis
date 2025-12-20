@@ -5,14 +5,14 @@
 Views are organized by tenant and code in the consolidated structure:
 
 ```
-tenants/{tenant_id}/resources/views/tenants/{tenant_id}/{code}/{view_name}.blade.php
+tenants/{tenant_id}/resources/views/{code}/{view_name}.blade.php
 ```
 
 **Example:**
-- `tenants/lapp/resources/views/tenants/lapp/default/home.blade.php` → accessed as `tenants.lapp.default.home`
-- `tenants/lapp/resources/views/tenants/lapp/admin/dashboard.blade.php` → accessed as `tenants.lapp.admin.dashboard`
+- `tenants/lapp/resources/views/default/home.blade.php` → accessed as `tenants.lapp.default.home`
+- `tenants/lapp/resources/views/admin/dashboard.blade.php` → accessed as `tenants.lapp.admin.dashboard`
 
-**Note:** All tenant-specific code (classes, views, etc.) is now consolidated in the `tenants/{tenant_id}/` directory for better organization and easier deployment.
+**Note:** All tenant-specific code (classes, views, etc.) is consolidated in the `tenants/{tenant_id}/` directory with simplified paths (no redundant tenant-name nesting).
 
 ## Using in Routes
 

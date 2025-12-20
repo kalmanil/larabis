@@ -25,7 +25,7 @@ php artisan tenant:create lapp \
 
 This automatically creates:
 - Tenant database
-- View folders: `tenants/lapp/resources/views/tenants/lapp/default/` and `tenants/lapp/resources/views/tenants/lapp/admin/`
+- View folders: `tenants/lapp/resources/views/default/` and `tenants/lapp/resources/views/admin/`
 - Starter `home.blade.php` files
 - Tenant directory structure: `tenants/lapp/`
 

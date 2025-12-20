@@ -50,7 +50,7 @@ class TenancyHelper
 
     /**
      * Get the view path for current tenant and view code
-     * Format: tenants.{tenant_id}.{code}.{view_name}
+     * Format: tenants.{tenant_id}::{code}.{view_name} (namespace format)
      */
     public static function getViewPath(string $viewName): string
     {
@@ -65,7 +65,8 @@ class TenancyHelper
         $tenantId = $tenant->id;
         $code = $view->code;
         
-        return "tenants.{$tenantId}.{$code}.{$viewName}";
+        // Use namespace format: tenants.{tenant_id}::{code}.{view_name}
+        return "tenants.{$tenantId}::{$code}.{$viewName}";
     }
 
     /**
@@ -85,20 +86,41 @@ class TenancyHelper
         
         $tenantId = $tenant->id;
         $code = $view->code;
-        $tenantViewPath = "tenants.{$tenantId}.{$code}.{$viewName}";
         
-        // Try consolidated location first (tenants/{id}/resources/views/tenants/{id}/{code}/{view})
-        $consolidatedPath = base_path("tenants/{$tenantId}/resources/views/tenants/{$tenantId}/{$code}/{$viewName}.blade.php");
+        // Use namespace format: tenants.{tenant_id}::{code}.{view_name}
+        // This works with View::addNamespace() registration in AppServiceProvider
+        $namespaceViewPath = "tenants.{$tenantId}::{$code}.{$viewName}";
         
-        // Try legacy location (resources/views/tenants/{id}/{code}/{view})
-        $legacyPath = resource_path("views/tenants/{$tenantId}/{$code}/{$viewName}.blade.php");
-        
-        // Check if view exists in either location
-        if (!file_exists($consolidatedPath) && !file_exists($legacyPath) && !view()->exists($tenantViewPath)) {
-            throw new \Exception("View not found: {$tenantViewPath} (checked consolidated and legacy locations)");
+        // Check if view exists using namespace
+        if (view()->exists($namespaceViewPath)) {
+            return view($namespaceViewPath, $data);
         }
         
-        return view($tenantViewPath, $data);
+        // Fallback: Try simplified consolidated location (tenants/{id}/resources/views/{code}/{view})
+        $simplifiedPath = base_path("tenants/{$tenantId}/resources/views/{$code}/{$viewName}.blade.php");
+        if (file_exists($simplifiedPath)) {
+            return view($namespaceViewPath, $data);
+        }
+        
+        // Fallback: Try old consolidated location (tenants/{id}/resources/views/tenants/{id}/{code}/{view})
+        $oldConsolidatedPath = base_path("tenants/{$tenantId}/resources/views/tenants/{$tenantId}/{$code}/{$viewName}.blade.php");
+        if (file_exists($oldConsolidatedPath)) {
+            return view($namespaceViewPath, $data);
+        }
+        
+        // Fallback: Try legacy location (resources/views/tenants/{id}/{code}/{view})
+        $legacyPath = resource_path("views/tenants/{$tenantId}/{$code}/{$viewName}.blade.php");
+        if (file_exists($legacyPath)) {
+            return view($namespaceViewPath, $data);
+        }
+        
+        // Try original format as last resort
+        $tenantViewPath = "tenants.{$tenantId}.{$code}.{$viewName}";
+        if (view()->exists($tenantViewPath)) {
+            return view($tenantViewPath, $data);
+        }
+        
+        throw new \Exception("View not found: {$viewName} for tenant {$tenantId}, view {$code} (checked namespace, simplified, old consolidated, legacy, and original format)");
     }
 }
 

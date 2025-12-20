@@ -50,7 +50,7 @@ View name/code are inferred from domain:
 
 Views are automatically created at:
 ```
-tenants/{tenant_id}/resources/views/tenants/{tenant_id}/{code}/{view_name}.blade.php
+tenants/{tenant_id}/resources/views/{code}/{view_name}.blade.php
 ```
 
 Folders are automatically created/renamed when views are added/updated.

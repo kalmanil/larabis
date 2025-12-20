@@ -10,29 +10,25 @@ tenants/
 │   ├── app/                                    # Tenant-specific classes
 │   │   └── Features/
 │   │       └── Pages/
-│   │           └── Tenants/
-│   │               └── lapp/
-│   │                   ├── Traits/
-│   │                   └── Views/
-│   │                       └── admin/
-│   │                           └── Traits/
+│   │           ├── Traits/                     # Tenant traits (simplified path)
+│   │           │   └── PageLogic.php
+│   │           └── Views/
+│   │               └── admin/
+│   │                   └── Traits/              # Tenant-specific view traits
+│   │                       └── PageLogic.php
 │   └── resources/
 │       └── views/
-│           └── tenants/
-│               └── lapp/
-│                   ├── default/                # Default view (lapp.test)
-│                   │   ├── home.blade.php
-│                   │   └── dashboard.blade.php
-│                   └── admin/                  # Admin view (admin.lapp.test)
-│                       ├── home.blade.php
-│                       └── dashboard.blade.php
+│           ├── default/                        # Default view (lapp.test)
+│           │   ├── home.blade.php
+│           │   └── dashboard.blade.php
+│           └── admin/                          # Admin view (admin.lapp.test)
+│               ├── home.blade.php
+│               └── dashboard.blade.php
 └── tenant2/
     └── resources/
         └── views/
-            └── tenants/
-                └── tenant2/
-                    ├── default/
-                    └── admin/
+            ├── default/
+            └── admin/
 ```
 
 ## View Path Format
@@ -40,8 +36,8 @@ tenants/
 Views use the format: `tenants.{tenant_id}.{code}.{view_name}`
 
 **Examples:**
-- `tenants.lapp.default.home` → `tenants/lapp/resources/views/tenants/lapp/default/home.blade.php`
-- `tenants.lapp.admin.dashboard` → `tenants/lapp/resources/views/tenants/lapp/admin/dashboard.blade.php`
+- `tenants.lapp.default.home` → `tenants/lapp/resources/views/default/home.blade.php`
+- `tenants.lapp.admin.dashboard` → `tenants/lapp/resources/views/admin/dashboard.blade.php`
 
 ## Using Views
 
@@ -95,6 +91,6 @@ try {
 
 Views are automatically created when using `tenant:create` or `tenant:view` commands. To manually add:
 
-1. Create folder: `tenants/{tenant_id}/resources/views/tenants/{tenant_id}/{code}/`
+1. Create folder: `tenants/{tenant_id}/resources/views/{code}/`
 2. Add view file: `{view_name}.blade.php`
 3. Use in routes: `TenancyHelper::view('view_name', $data)`

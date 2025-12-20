@@ -36,25 +36,21 @@ app/
 
 tenants/                               # Consolidated tenant-specific code
 └── {tenant_id}/
-    ├── app/                          # Tenant-specific classes
+    ├── app/                          # Tenant-specific classes (simplified paths)
     │   └── Features/
     │       └── Pages/
-    │           └── Tenants/
-    │               └── {tenant_id}/
-    │                   ├── Traits/
-    │                   │   └── PageLogic.php  # Tenant-specific (all views)
-    │                   └── Views/             # Tenant-specific view logic
-    │                       └── admin/
-    │                           └── Traits/
-    │                               └── PageLogic.php  # Tenant's admin-specific logic
+    │           ├── Traits/
+    │           │   └── PageLogic.php  # Tenant-specific (all views)
+    │           └── Views/             # Tenant-specific view logic
+    │               └── admin/
+    │                   └── Traits/
+    │                       └── PageLogic.php  # Tenant's admin-specific logic
     └── resources/
         └── views/
-            └── tenants/
-                └── {tenant_id}/
-                    ├── default/
-                    │   └── *.blade.php
-                    └── admin/
-                        └── *.blade.php
+            ├── default/
+            │   └── *.blade.php
+            └── admin/
+                └── *.blade.php
 ```
 
 **Note:** All tenant-specific code (classes, views, etc.) is consolidated in `tenants/{tenant_id}/` for better organization and easier deployment.
@@ -75,9 +71,13 @@ App\Features\Pages\Controllers\PageController
 
 ### Tenant-Specific (Consolidated)
 ```php
-// Located in: tenants/{tenant_id}/app/Features/Pages/Tenants/{tenant_id}/
+// Namespace: App\Features\Pages\Tenants\{tenant_id}\...
+// File path: tenants/{tenant_id}/app/Features/Pages/... (simplified, no redundant nesting)
 App\Features\Pages\Tenants\lapp\Traits\PageLogic  # Tenant logic (all views)
+// → tenants/lapp/app/Features/Pages/Traits/PageLogic.php
+
 App\Features\Pages\Tenants\lapp\Views\admin\Traits\PageLogic  # Lapp's admin-specific logic
+// → tenants/lapp/app/Features/Pages/Views/admin/Traits/PageLogic.php
 ```
 
 ### View-Specific (Shared)
@@ -121,7 +121,8 @@ trait PageLogic
 
 #### Tenant-Specific Trait
 ```php
-// tenants/lapp/app/Features/Pages/Tenants/lapp/Traits/PageLogic.php
+// tenants/lapp/app/Features/Pages/Traits/PageLogic.php (simplified path)
+// Namespace still includes tenant name for uniqueness
 namespace App\Features\Pages\Tenants\lapp\Traits;
 
 use App\Core\Traits\ConstructableTrait;
@@ -275,7 +276,8 @@ trait PageLogic
 
 #### Tenant-Specific Admin Trait
 ```php
-// tenants/lapp/app/Features/Pages/Tenants/lapp/Views/admin/Traits/PageLogic.php
+// tenants/lapp/app/Features/Pages/Views/admin/Traits/PageLogic.php (simplified path)
+// Namespace still includes tenant name for uniqueness
 namespace App\Features\Pages\Tenants\lapp\Views\admin\Traits;
 
 use App\Features\Pages\Views\admin\Traits\PageLogic as BaseAdminPageLogic;
@@ -320,14 +322,14 @@ use LappPageLogic, BaseAdminPageLogic, LappAdminPageLogic {
 - **Domain**: `lapp.test:8000`
 - **View Code**: `default`
 - **Purpose**: Public landing page
-- **Location**: `tenants/lapp/resources/views/tenants/lapp/default/home.blade.php`
+- **Location**: `tenants/lapp/resources/views/default/home.blade.php`
 - **Usage**: `TenancyHelper::view('home', $data)`
 
 ### Admin View (CMS Login)
 - **Domain**: `admin.lapp.test:8001`
 - **View Code**: `admin`
 - **Purpose**: Admin CMS with mock login
-- **Location**: `tenants/lapp/resources/views/tenants/lapp/admin/login.blade.php`
+- **Location**: `tenants/lapp/resources/views/admin/login.blade.php`
 - **Usage**: `TenancyHelper::view('login', $data)` ⚠️ Note: Use 'login', not 'admin.login'
 
 ### ⚠️ Important: View Path Construction

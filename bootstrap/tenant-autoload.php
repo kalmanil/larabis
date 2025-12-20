@@ -11,8 +11,13 @@
  */
 
 if (!function_exists('registerTenantAutoloader')) {
+    // Track registered autoloaders to prevent duplicates
+    static $registeredAutoloaders = [];
+    
     function registerTenantAutoloader()
     {
+        global $registeredAutoloaders;
+        
         $tenantsPath = __DIR__ . '/../tenants';
         
         if (!is_dir($tenantsPath)) {
@@ -28,18 +33,45 @@ if (!function_exists('registerTenantAutoloader')) {
                 continue;
             }
             
+            // Extract tenant ID from directory name
+            $tenantId = basename($tenantDir);
+            
+            // Prevent duplicate registration for same tenant
+            $autoloaderKey = "tenant_{$tenantId}";
+            if (isset($registeredAutoloaders[$autoloaderKey])) {
+                continue;
+            }
+            
             // Register autoloader for this tenant's app directory
-            spl_autoload_register(function ($class) use ($appPath) {
-                // Only handle App namespace classes
+            // Prepend so it runs before Composer, but only handle tenant-specific classes
+            spl_autoload_register(function ($class) use ($appPath, $tenantId) {
+                // Only handle App namespace classes that contain this tenant's namespace
                 if (strpos($class, 'App\\') !== 0) {
                     return false;
                 }
                 
+                // Only handle classes that contain this tenant's namespace part
+                // This prevents the tenant autoloader from interfering with base classes
+                $tenantNamespacePart = "Tenants\\{$tenantId}\\";
+                if (strpos($class, $tenantNamespacePart) === false) {
+                    return false; // Let Composer's autoloader handle non-tenant classes
+                }
+                
                 // Convert namespace to file path
-                // Remove 'App\' prefix and convert namespace separators to directory separators
+                // Remove 'App\' prefix
                 $relativePath = str_replace('App\\', '', $class);
+                
+                // Remove 'Tenants\{tenant_id}\' from path
+                // Example: App\Features\Pages\Tenants\lapp\Traits\PageLogic
+                // → Features\Pages\Traits\PageLogic
+                $relativePath = str_replace($tenantNamespacePart, '', $relativePath);
+                
+                // Convert namespace separators to directory separators
                 $relativePath = str_replace('\\', DIRECTORY_SEPARATOR, $relativePath);
                 $filePath = $appPath . DIRECTORY_SEPARATOR . $relativePath . '.php';
+                
+                // Normalize path separators for Windows compatibility
+                $filePath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $filePath);
                 
                 // Check if file exists (case-sensitive on Linux, case-insensitive on Windows)
                 if (file_exists($filePath)) {
@@ -48,7 +80,9 @@ if (!function_exists('registerTenantAutoloader')) {
                 }
                 
                 return false;
-            }, true, true); // Prepend to autoload stack, throw on error
+            }, true, false); // Prepend to autoload stack, don't throw (let Composer try if we fail)
+            
+            $registeredAutoloaders[$autoloaderKey] = true;
         }
     }
     
