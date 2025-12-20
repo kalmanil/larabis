@@ -71,6 +71,8 @@ class TenancyHelper
     /**
      * Get tenant-specific view
      * Format: tenants.{tenant_id}.{code}.{view_name}
+     * 
+     * Supports both consolidated (tenants/{id}/resources/views) and legacy locations
      */
     public static function view(string $viewName, array $data = [])
     {
@@ -81,10 +83,19 @@ class TenancyHelper
             throw new \Exception('Tenant or view context not available');
         }
         
-        $tenantViewPath = "tenants.{$tenant->id}.{$view->code}.{$viewName}";
+        $tenantId = $tenant->id;
+        $code = $view->code;
+        $tenantViewPath = "tenants.{$tenantId}.{$code}.{$viewName}";
         
-        if (!view()->exists($tenantViewPath)) {
-            throw new \Exception("View not found: {$tenantViewPath}");
+        // Try consolidated location first (tenants/{id}/resources/views/tenants/{id}/{code}/{view})
+        $consolidatedPath = base_path("tenants/{$tenantId}/resources/views/tenants/{$tenantId}/{$code}/{$viewName}.blade.php");
+        
+        // Try legacy location (resources/views/tenants/{id}/{code}/{view})
+        $legacyPath = resource_path("views/tenants/{$tenantId}/{$code}/{$viewName}.blade.php");
+        
+        // Check if view exists in either location
+        if (!file_exists($consolidatedPath) && !file_exists($legacyPath) && !view()->exists($tenantViewPath)) {
+            throw new \Exception("View not found: {$tenantViewPath} (checked consolidated and legacy locations)");
         }
         
         return view($tenantViewPath, $data);
