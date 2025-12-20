@@ -5,14 +5,17 @@ All views are equal - 'default' is just a naming convention for main domains.
 ## Creating Tenants
 
 ```bash
-# Single view
+# Single view (backward compatibility - uses --domain)
 php artisan tenant:create mytenant --domain=mytenant.test
 
-# Multiple views (all equal)
+# Multiple views (all equal) - recommended
 php artisan tenant:create mytenant \
     --domains=mytenant.test \
     --domains=admin.mytenant.test \
     --domains=api.mytenant.test
+
+# Note: --domain creates a single view named "default"
+#       --domains creates multiple views with inferred names/codes
 ```
 
 ## Managing Views

@@ -1,27 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Models\TenantView;
+use App\Features\Pages\Controllers\PageController;
 use App\Helpers\TenancyHelper;
 
-Route::get('/', function () {
-    $view = TenancyHelper::currentView();
-    $tenant = TenancyHelper::currentTenant();
-    
-    // Use tenant-specific view helper
-    return TenancyHelper::view('home', [
-        'tenant' => $tenant,
-        'view' => $view,
-    ]);
-});
+// Home route - handles both default and admin views
+Route::get('/', [PageController::class, 'home']);
 
-Route::get('/dashboard', function () {
-    $view = TenancyHelper::currentView();
-    $tenant = TenancyHelper::currentTenant();
-    
-    // Use tenant-specific view helper for dashboard
-    return TenancyHelper::view('dashboard', [
-        'tenant' => $tenant,
-        'view' => $view,
-    ]);
-});
+// Admin login route
+Route::get('/login', [PageController::class, 'adminLogin'])->name('admin.login');

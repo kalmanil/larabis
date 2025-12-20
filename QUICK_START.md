@@ -55,6 +55,8 @@ Access:
 
 ## Usage
 
+### Basic Route Example
+
 ```php
 // In routes/web.php
 use App\Helpers\TenancyHelper;
@@ -70,6 +72,36 @@ Route::get('/dashboard', function () {
     return TenancyHelper::view('dashboard', [
         'tenant' => TenancyHelper::currentTenant(),
         'view' => TenancyHelper::currentView(),
+    ]);
+});
+
+// ⚠️ IMPORTANT: Only pass the view name (without view code prefix)
+// For 'login.blade.php' in admin view, use:
+Route::get('/login', function () {
+    return TenancyHelper::view('login', $data);  // ✅ Correct
+    // NOT: TenancyHelper::view('admin.login', $data);  // ❌ Wrong
+});
+```
+
+### Conditional Content Based on View
+
+```php
+Route::get('/content', function () {
+    $view = TenancyHelper::currentView();
+    
+    // Check if we're in admin view
+    if (TenancyHelper::isAdminView()) {
+        // Admin-specific logic
+    }
+    
+    // Or check for specific view code
+    if (TenancyHelper::isViewCode('api')) {
+        // API-specific logic
+    }
+    
+    return TenancyHelper::view('content', [
+        'tenant' => TenancyHelper::currentTenant(),
+        'view' => $view,
     ]);
 });
 ```

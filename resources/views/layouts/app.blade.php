@@ -8,6 +8,15 @@
     <style>
         body { font-family: system-ui, -apple-system, sans-serif; }
         .container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
+        /* Prevent SVGs from expanding to 100% width - only expand if no explicit sizing */
+        svg {
+            display: inline-block;
+            vertical-align: middle;
+        }
+        /* SVGs with explicit width/height should maintain their size */
+        svg[width], svg[height] {
+            max-width: none !important;
+        }
     </style>
 </head>
 <body>
