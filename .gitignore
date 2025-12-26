@@ -22,3 +22,12 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Tenants - exclude all except sample apps and submodule files
+tenants/*
+!tenants/lapp
+!tenants/.gitmodules
+!tenants/.git
+# Add more sample apps here as needed:
+# !tenants/sample2
+# !tenants/sample3
