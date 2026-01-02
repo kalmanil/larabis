@@ -5,8 +5,8 @@
 # ============================================
 # CONFIGURATION - Update these values
 # ============================================
-TENANT_ID="HEBREW_TENANT_ID"  # Replace with actual Hebrew tenant name
-REPO_URL="https://github.com/yourusername/HEBREW_TENANT_ID.git"  # Replace with actual repo URL
+TENANT_ID="flashcards"  # Replace with actual Hebrew tenant name
+REPO_URL="https://github.com/kalmanil/larabis-flashcards.git"  # Replace with actual repo URL
 
 # ============================================
 # Step 1: Create Tenant Repo Structure

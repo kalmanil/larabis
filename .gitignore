@@ -31,3 +31,6 @@ tenants/*
 # Add more sample apps here as needed:
 # !tenants/sample2
 # !tenants/sample3
+
+# Cursor rules
+.cursorrules
