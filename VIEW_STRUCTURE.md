@@ -76,6 +76,26 @@ Since helper methods can return `null`, use safe access:
 @endif
 ```
 
+## Error Handling
+
+The `TenancyHelper::view()` method throws exceptions if:
+- Tenant or view context is not available
+- The view file does not exist
+
+**Logging:**
+- Tenant resolution failures are logged at debug level
+- Initialization failures are logged at error level with full context
+
+```php
+try {
+    return TenancyHelper::view('home', $data);
+} catch (\Exception $e) {
+    // Handle error: view not found or context missing
+    // Check logs for detailed error information
+    return view('errors.view-not-found', ['error' => $e->getMessage()]);
+}
+```
+
 ## Shared Layout
 
 All views can extend the shared layout:

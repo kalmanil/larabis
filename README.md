@@ -67,3 +67,20 @@ TenancyHelper::getViewPath('home')  // Get view path string
 - PHP ^8.2
 - Laravel ^12.0
 - stancl/tenancy ^3.9
+
+## Testing & Monitoring
+
+The application includes comprehensive error handling and logging:
+
+- **Error Handling**: Automatic error logging for tenant initialization failures
+- **Debug Logging**: Tenant resolution failures are logged for troubleshooting
+- **Test Coverage**: Error scenario tests ensure graceful failure handling
+
+Run tests:
+```bash
+php artisan test
+```
+
+Check logs for tenant-related issues:
+- `Tenancy initialization failed` - Database connection or initialization problems
+- `Tenant resolution failed` - Tenant/view not found for domain

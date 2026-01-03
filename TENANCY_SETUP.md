@@ -22,9 +22,16 @@ return [
 
 1. Request hits domain (e.g., `admin.lapp.test:8001`)
 2. Domain folder's `index.php` loads config
-3. `TenantViewMiddleware` initializes tenant and view context
-4. Routes use `TenancyHelper` to access current tenant/view
-5. Views resolve to: `tenants.{tenant_id}.{code}.{view_name}`
+3. `TenantViewMiddleware` resolves tenant and view using `TenantResolver`
+4. If tenant found, `tenancy()->initialize()` is called (with error handling)
+5. Tenant/view context is bound to service container via contracts
+6. Routes use `TenancyHelper` to access current tenant/view
+7. Views resolve to: `tenants.{tenant_id}.{code}.{view_name}`
+
+**Error Handling:**
+- If tenant initialization fails, errors are logged and exceptions are re-thrown
+- If tenant/view cannot be resolved, application continues normally (non-tenant routes)
+- Debug logs are written when resolution fails for troubleshooting
 
 ## Helper Methods
 
