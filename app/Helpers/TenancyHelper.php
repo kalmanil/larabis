@@ -2,6 +2,8 @@
 
 namespace App\Helpers;
 
+use App\Contracts\CurrentTenant;
+use App\Contracts\CurrentTenantView;
 use App\Models\Tenant;
 use App\Models\TenantView;
 
@@ -12,7 +14,14 @@ class TenancyHelper
      */
     public static function currentTenant(): ?Tenant
     {
-        return app('currentTenant');
+        if (app()->bound(CurrentTenant::class)) {
+            return app(CurrentTenant::class)->getTenant();
+        }
+        // Fallback for backward compatibility (string keys)
+        if (app()->bound('currentTenant')) {
+            return app('currentTenant');
+        }
+        return null;
     }
 
     /**
@@ -20,7 +29,14 @@ class TenancyHelper
      */
     public static function currentView(): ?TenantView
     {
-        return app('currentTenantView');
+        if (app()->bound(CurrentTenantView::class)) {
+            return app(CurrentTenantView::class)->getView();
+        }
+        // Fallback for backward compatibility (string keys)
+        if (app()->bound('currentTenantView')) {
+            return app('currentTenantView');
+        }
+        return null;
     }
 
     /**

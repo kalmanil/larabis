@@ -2,14 +2,35 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Tenant;
-use App\Models\TenantView;
+use App\Contracts\CurrentTenant;
+use App\Contracts\CurrentTenantView;
+use App\Tenancy\TenantContext;
+use App\Tenancy\TenantResolver;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Middleware for tenant and view resolution and tenancy initialization.
+ * 
+ * Responsibilities:
+ * - Resolve tenant and view using TenantResolver
+ * - Bind resolved instances to service container via contracts
+ * - Initialize stancl tenancy context
+ * 
+ * This middleware does NOT:
+ * - Perform database writes
+ * - Create tenant views
+ * - Check schema existence
+ * - Contain business logic
+ */
 class TenantViewMiddleware
 {
+    public function __construct(
+        protected TenantResolver $resolver
+    ) {
+    }
+    
     /**
      * Handle an incoming request.
      *
@@ -17,45 +38,32 @@ class TenantViewMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $host = $request->getHost();
+        // Resolve tenant and view using resolver service
+        $resolved = $this->resolver->resolve($request);
+        $tenant = $resolved->tenant();
+        $view = $resolved->view();
         
-        // Check if domain config is set (from domain folder)
-        $tenantId = $_ENV['DOMAIN_TENANT_ID'] ?? null;
-        $code = $_ENV['DOMAIN_CODE'] ?? 'default';
-        
-        if ($tenantId) {
-            // Find tenant by ID
-            $tenant = Tenant::find($tenantId);
+        // If tenant is resolved, initialize tenancy and bind context
+        if ($tenant) {
+            // Initialize stancl tenancy FIRST - this establishes the tenant database
+            // connection, fires TenancyInitialized event, and sets up stancl's internal
+            // state. Our custom bindings must come AFTER to ensure stancl's lifecycle
+            // is respected and to avoid interfering with initialization.
+            tenancy()->initialize($tenant);
             
-            if ($tenant) {
-                // Find or create view for this domain
-                $view = $tenant->views()->where('domain', $host)->first();
-                
-                if (!$view) {
-                    // Create view if it doesn't exist
-                    $view = $tenant->views()->create([
-                        'name' => $code,
-                        'domain' => $host,
-                        'code' => $code,
-                    ]);
-                }
-                
-                // Set current tenant view in container
-                app()->instance('currentTenantView', $view);
-                app()->instance('currentTenant', $tenant);
-                
-                // Initialize tenant context
-                tenancy()->initialize($tenant);
-            }
-        } else {
-            // Fallback: Find by domain directly
-            $view = TenantView::where('domain', $host)->first();
+            // Bind context AFTER tenancy initialization - this ensures:
+            // 1. Tenant database connection is established
+            // 2. TenancyInitialized event has fired (allows listeners to run)
+            // 3. stancl's internal state is ready
+            // 4. If initialization fails, our bindings won't be set (fail-safe)
+            $context = new TenantContext($tenant, $view);
             
-            if ($view) {
-                app()->instance('currentTenantView', $view);
-                app()->instance('currentTenant', $view->tenant);
-                tenancy()->initialize($view->tenant);
-            }
+            // Bind via contracts for type-safe access
+            app()->instance(CurrentTenant::class, $context);
+            app()->instance(CurrentTenantView::class, $context);
+            
+            // Also bind context itself for direct access
+            app()->instance(TenantContext::class, $context);
         }
         
         return $next($request);
