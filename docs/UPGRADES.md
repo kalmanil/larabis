@@ -123,6 +123,66 @@ When upgrading stancl/tenancy:
 - [ ] Verify config system compatibility
 - [ ] Test error handling paths after upgrade
 
+## Critical File Locations
+
+### Files That Must Not Be Moved/Reordered
+
+1. **bootstrap/app.php** - Middleware registration
+   - `TenantViewMiddleware` MUST be prepended to web middleware
+   - Order: Tenancy initialization → Other middleware
+   - ⚠️ DO NOT move TenantViewMiddleware to different middleware group
+   - Location: Lines 13-17
+
+2. **app/Http/Middleware/TenantViewMiddleware.php** - Initialization order
+   - Step 1: Resolve tenant/view (line 42-45)
+   - Step 2: Initialize stancl tenancy (line 54)
+   - Step 3: Bind context (line 61-68)
+   - ⚠️ DO NOT reorder these steps
+   - Error handling wraps step 2-3 (line 49-81)
+
+3. **bootstrap/tenant-autoload.php** - Autoloader registration
+   - Loaded via composer.json "files" autoload (line 32-34)
+   - Must run before Laravel fully boots
+   - ⚠️ DO NOT remove from composer.json autoload
+   - ⚠️ DO NOT change autoload registration order
+
+4. **app/Tenancy/TenantResolver.php** - Single entry point
+   - All tenant resolution must go through this service
+   - ⚠️ DO NOT create alternative resolution paths
+   - Used by TenantViewMiddleware (line 42)
+
+## Upgrade Breakage Detection
+
+### Automated Tests
+
+Run these tests after every upgrade to detect breakage:
+
+```bash
+php artisan test --filter=UpgradeCompatibility
+```
+
+These tests verify that critical APIs we depend on still work:
+- `tenancy()->initialize()` API
+- `tenancy()->initialized` property
+- `HasDatabase` and `HasDomains` traits
+- `TenantWithDatabase` contract
+- Middleware initialization order
+
+### Manual Verification Checklist
+
+After upgrading stancl/tenancy or Laravel:
+
+- [ ] Run `php artisan test --filter=UpgradeCompatibility`
+- [ ] Verify `tenancy()->initialize($tenant)` still works
+- [ ] Check `tenancy()->initialized` property/method still accessible
+- [ ] Test `HasDatabase` and `HasDomains` traits still work
+- [ ] Verify `TenantWithDatabase` contract still exists
+- [ ] Confirm middleware registration order still respected
+- [ ] Test tenant autoloader still works with class caching
+- [ ] Verify error handling still works (check logs)
+- [ ] Test tenant resolution with invalid domains
+- [ ] Verify view namespace registration timing
+
 ## Testing
 
 Run the following tests after upgrades:
@@ -135,4 +195,5 @@ Key test files:
 - `tests/Feature/TenantViewTest.php` - Tenant view resolution
 - `tests/Feature/TenantViewFallbackTest.php` - Fallback behavior
 - `tests/Feature/TenantErrorHandlingTest.php` - Error scenarios and logging
+- `tests/Feature/UpgradeCompatibilityTest.php` - Upgrade breakage detection
 

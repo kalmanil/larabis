@@ -3,11 +3,21 @@
 /**
  * Tenant Autoloader
  * 
+ * ⚠️ CRITICAL FILE - DO NOT REMOVE OR MODIFY WITHOUT REVIEWING docs/UPGRADES.md
+ * 
  * This file registers autoloading for tenant-specific classes
  * located in tenants/{tenant_id}/app/ directories.
  * 
- * It's included early in the bootstrap process to ensure
- * tenant classes are available before Laravel fully boots.
+ * It's included early in the bootstrap process (via composer.json "files" autoload)
+ * to ensure tenant classes are available before Laravel fully boots.
+ * 
+ * Upgrade Notes:
+ * - May need adjustment if Laravel class caching changes
+ * - Registered via composer.json autoload "files" array (line 32-34)
+ * - Uses spl_autoload_register with prepend=true (runs before Composer)
+ * - Must run before Laravel service providers boot
+ * 
+ * See docs/UPGRADES.md for upgrade safety information.
  */
 
 if (!function_exists('registerTenantAutoloader')) {

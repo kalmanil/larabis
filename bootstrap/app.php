@@ -11,6 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // ⚠️ DO NOT MOVE OR REORDER.
+        // TenantViewMiddleware MUST be prepended to web middleware stack.
+        // Tenancy must be initialized before any other middleware that might need tenant context.
+        // Changes here affect upgrade safety - see docs/UPGRADES.md
         $middleware->web(prepend: [
             \App\Http\Middleware\TenantViewMiddleware::class,
         ]);

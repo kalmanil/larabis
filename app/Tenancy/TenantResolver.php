@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Log;
 /**
  * Resolves tenant and tenant view from the current request.
  * 
+ * ⚠️ CRITICAL: This is the SINGLE ENTRY POINT for tenant resolution.
+ * DO NOT create alternative resolution paths - all tenant resolution
+ * must go through this service to maintain upgrade safety.
+ * 
  * This service encapsulates all tenant resolution logic, including:
  * - Reading domain configuration
  * - Finding tenant by ID or domain
@@ -17,6 +21,8 @@ use Illuminate\Support\Facades\Log;
  * 
  * Note: This service does NOT create tenant views. Views must exist
  * and be created via artisan commands (tenant:create, tenant:view).
+ * 
+ * See docs/UPGRADES.md for upgrade safety information.
  */
 class TenantResolver
 {

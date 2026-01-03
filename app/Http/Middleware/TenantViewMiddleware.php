@@ -39,6 +39,12 @@ class TenantViewMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // ⚠️ DO NOT REORDER THESE STEPS.
+        // 1. Resolve tenant/view FIRST (before any tenancy initialization)
+        // 2. Initialize stancl tenancy (establishes database connection)
+        // 3. Bind context AFTER initialization (ensures stancl lifecycle is respected)
+        // Changes to this order will break upgrade safety - see docs/UPGRADES.md
+        
         // Resolve tenant and view using resolver service
         $resolved = $this->resolver->resolve($request);
         $tenant = $resolved->tenant();
