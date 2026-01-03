@@ -5,6 +5,7 @@ namespace App\Tenancy;
 use App\Models\Tenant;
 use App\Models\TenantView;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Resolves tenant and tenant view from the current request.
@@ -37,11 +38,26 @@ class TenantResolver
         
         if ($tenantId) {
             // Find tenant by ID
-            return Tenant::find($tenantId);
+            $tenant = Tenant::find($tenantId);
+            
+            if (!$tenant) {
+                Log::debug('Tenant resolution failed: tenant not found', [
+                    'host' => $host,
+                    'tenant_id_from_config' => $tenantId,
+                ]);
+            }
+            
+            return $tenant;
         }
         
         // Fallback: Find tenant by domain via tenant view
         $view = TenantView::where('domain', $host)->first();
+        
+        if (!$view) {
+            Log::debug('Tenant resolution failed: no view found for domain', [
+                'host' => $host,
+            ]);
+        }
         
         return $view ? $view->tenant : null;
     }
@@ -70,7 +86,16 @@ class TenantResolver
         }
         
         // Find view by domain for this tenant
-        return $tenant->views()->where('domain', $host)->first();
+        $view = $tenant->views()->where('domain', $host)->first();
+        
+        if (!$view) {
+            Log::debug('Tenant view resolution failed: no view found for domain', [
+                'host' => $host,
+                'tenant_id' => $tenant->id,
+            ]);
+        }
+        
+        return $view;
     }
     
     /**
