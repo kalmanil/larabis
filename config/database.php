@@ -51,11 +51,11 @@ return [
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '3306'),
-            'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
+            'host' => env('TENANT_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('TENANT_DB_PORT', env('DB_PORT', '3306')),
+            'database' => null, // Will be set dynamically to: tenant_{tenant_id}
+            'username' => env('TENANT_DB_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('TENANT_DB_PASSWORD', env('DB_PASSWORD', '')),
             'unix_socket' => env('DB_SOCKET', ''),
             'charset' => env('DB_CHARSET', 'utf8mb4'),
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
@@ -67,6 +67,40 @@ return [
                 $mysqlSslCaAttr => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],
+
+        // Optional: Additional tenant connections for multiple databases per tenant
+        // Uncomment and configure if you need separate databases for analytics, read replicas, etc.
+        /*
+        'tenant_analytics' => [
+            'driver' => 'mysql',
+            'host' => env('TENANT_ANALYTICS_DB_HOST', '127.0.0.1'),
+            'port' => env('TENANT_ANALYTICS_DB_PORT', '3306'),
+            'database' => null, // Will be set to: tenant_{id}_analytics
+            'username' => env('TENANT_ANALYTICS_DB_USERNAME', 'root'),
+            'password' => env('TENANT_ANALYTICS_DB_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
+        'tenant_read' => [
+            'driver' => 'mysql',
+            'host' => env('TENANT_READ_DB_HOST', '127.0.0.1'),
+            'port' => env('TENANT_READ_DB_PORT', '3306'),
+            'database' => null, // Will be set to: tenant_{id}
+            'username' => env('TENANT_READ_DB_USERNAME', 'root'),
+            'password' => env('TENANT_READ_DB_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+        */
 
         'mariadb' => [
             'driver' => 'mariadb',
