@@ -3,85 +3,99 @@
 namespace App\Features\Pages\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Core\Traits\ConstructableTrait;
-use App\Features\Pages\Tenants\lapp\Traits\PageLogic as LappPageLogic;
-use App\Features\Pages\Tenants\lapp\Views\admin\Traits\PageLogic as LappAdminPageLogic;
+use App\Core\Services\TenantTraitRegistry;
 use App\Features\Pages\Views\default\Traits\PageLogic as DefaultPageLogic;
 use App\Features\Pages\Views\admin\Traits\PageLogic as BaseAdminPageLogic;
 use App\Helpers\TenancyHelper;
 
+/**
+ * Page Controller with Dynamic Trait Resolution
+ * 
+ * Uses TenantTraitRegistry to dynamically discover and call tenant-specific
+ * trait methods without requiring code changes when adding new tenants.
+ * 
+ * This approach is upgrade-safe because:
+ * - Uses only TenancyHelper (contract-based, not stancl directly)
+ * - Gracefully falls back when tenant-specific code doesn't exist
+ * - Supports both static methods (new tenants) and instance methods (legacy tenants)
+ * 
+ * @see TenantTraitRegistry for trait discovery priority
+ * @see docs/UPGRADES.md for upgrade safety information
+ */
 class PageController extends Controller
 {
-    use ConstructableTrait;
-    use LappPageLogic, DefaultPageLogic, BaseAdminPageLogic, LappAdminPageLogic {
-        // Resolve traitConstructPageLogic conflicts
-        // Keep DefaultPageLogic as primary (for default view)
-        DefaultPageLogic::traitConstructPageLogic insteadof LappPageLogic, BaseAdminPageLogic, LappAdminPageLogic;
-        // Alias others to unique names so ConstructableTrait can call them
-        LappPageLogic::traitConstructPageLogic as traitConstructLappPageLogic;
-        BaseAdminPageLogic::traitConstructPageLogic as traitConstructBaseAdminPageLogic;
-        LappAdminPageLogic::traitConstructPageLogic as traitConstructLappAdminPageLogic;
+    use DefaultPageLogic, BaseAdminPageLogic {
+        // Resolve traitConstructPageLogic conflict - use DefaultPageLogic as primary
+        // BaseAdminPageLogic constructor will be called explicitly when needed
+        DefaultPageLogic::traitConstructPageLogic insteadof BaseAdminPageLogic;
+        // Alias BaseAdminPageLogic constructor so it can still be called if needed
+        BaseAdminPageLogic::traitConstructPageLogic as traitConstructAdminPageLogic;
         
-        // Priority: Default view uses DefaultPageLogic, Admin view uses LappAdminPageLogic
-        // For default view: DefaultPageLogic takes priority
-        DefaultPageLogic::getPageData insteadof LappPageLogic, BaseAdminPageLogic;
-        // For admin view: LappAdminPageLogic takes priority (used explicitly in adminLogin)
-        LappAdminPageLogic::getPageData as getLappAdminPageData;
-        LappAdminPageLogic::getAdminDashboardData insteadof BaseAdminPageLogic;
-        LappAdminPageLogic::getAdminTheme insteadof BaseAdminPageLogic;
-        // Resolve getLappBranding conflict - tenant version takes priority (public)
-        LappPageLogic::getLappBranding insteadof LappAdminPageLogic;
-        LappAdminPageLogic::getLappBranding as getLappAdminBranding;
-        // Keep others accessible via aliases
-        LappPageLogic::getPageData as getLappPageData;
-        BaseAdminPageLogic::getPageData as getBaseAdminPageData;
+        // Resolve getPageData conflict - use DefaultPageLogic as primary
+        // BaseAdminPageLogic will be used via TenantTraitRegistry or explicit calls
+        DefaultPageLogic::getPageData insteadof BaseAdminPageLogic;
     }
     
     public function __construct()
     {
-        // Call parent constructor if it exists (base Controller doesn't have one)
-        if (method_exists(parent::class, '__construct')) {
-            parent::__construct();
-        }
-        
-        // Call ConstructableTrait's initialization (it will call DefaultPageLogic::traitConstructPageLogic)
-        $this->initializeAllTraits();
-        
-        // Manually call the aliased constructors for the others
-        // (they're aliased so ConstructableTrait won't find them automatically)
-        $this->traitConstructLappPageLogic();
-        $this->traitConstructBaseAdminPageLogic();
-        $this->traitConstructLappAdminPageLogic();
+        // Initialize default view logic (called for all requests)
+        // This sets up basic page data via DefaultPageLogic
+        $this->traitConstructPageLogic();
     }
     
     public function home()
     {
         $view = TenancyHelper::currentView();
-        $tenant = TenancyHelper::currentTenant();
         
         // Determine which view to use based on view code
         if ($view && $view->code === 'admin') {
             return $this->adminLogin();
         }
         
-        // Default landing page - combine tenant and default view data
-        // getPageData() now uses DefaultPageLogic as primary
-        $pageData = array_merge(
-            $this->getLappPageData(),
-            $this->getPageData() // Uses DefaultPageLogic
-        );
+        // Default landing page - use dynamic trait resolution
+        // Priority: Tenant-View → Tenant → View → Base
+        // The registry handles both static methods (new tenants) and instance methods (legacy)
+        $tenantData = TenantTraitRegistry::getData('getPageData', $this) ?? [];
+        
+        // Merge with default view data (fallback)
+        $defaultData = $this->getPageData();
+        
+        $pageData = array_merge($defaultData, $tenantData);
         
         return TenancyHelper::view('home', $pageData);
     }
     
     public function adminLogin()
     {
-        // Admin view - explicitly use Lapp admin trait data
-        $pageData = $this->getLappAdminPageData();
+        // Initialize admin view logic (merge with default data)
+        // This sets up admin-specific page data via BaseAdminPageLogic
+        $this->traitConstructAdminPageLogic();
         
-        // Add dashboard data (uses tenant-specific override if available)
-        $pageData['dashboard'] = $this->getAdminDashboardData();
-        $pageData['theme'] = $this->getAdminTheme();
+        // Admin view - use dynamic trait resolution
+        // Priority: Tenant-View (admin) → Tenant → View (admin) → Base
+        $tenantData = TenantTraitRegistry::getData('getPageData', $this) ?? [];
+        
+        // Get admin-specific data
+        $adminData = TenantTraitRegistry::getData('getAdminDashboardData', $this) ?? [];
+        $themeData = TenantTraitRegistry::getData('getAdminTheme', $this) ?? [];
+        
+        // Fallback to instance methods if registry didn't find static methods
+        // (for backward compatibility with lapp and other legacy tenants)
+        if (empty($adminData) && method_exists($this, 'getAdminDashboardData')) {
+            $adminData = $this->getAdminDashboardData();
+        }
+        if (empty($themeData) && method_exists($this, 'getAdminTheme')) {
+            $themeData = $this->getAdminTheme();
+        }
+        
+        // Merge all data (default + admin + tenant-specific)
+        $defaultData = $this->getPageData(); // Gets merged default + admin data
+        $pageData = array_merge(
+            $defaultData,
+            $tenantData,
+            ['dashboard' => $adminData],
+            ['theme' => $themeData]
+        );
         
         // View path is constructed as: tenants.{tenant_id}.{view_code}.{view_name}
         // So for admin view, just use 'login' (not 'admin.login')
