@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Log;
  * This service encapsulates all tenant resolution logic, including:
  * - Reading domain configuration
  * - Finding tenant by ID or domain
- * - Finding tenant view by domain
+ * - Finding tenant view by code (from config) or domain
  * 
  * Note: This service does NOT create tenant views. Views must exist
  * and be created via artisan commands (tenant:create, tenant:view).
@@ -72,6 +72,7 @@ class TenantResolver
      * Resolve tenant view from request.
      * 
      * Reads domain configuration and finds the corresponding tenant view.
+     * Priority: 1) Code from config, 2) Domain-based lookup
      * Returns null if view cannot be resolved.
      * 
      * @param Request $request
@@ -91,7 +92,22 @@ class TenantResolver
             return null;
         }
         
-        // Find view by domain for this tenant
+        // Priority 1: Check if code is explicitly set in domain config
+        $code = config('domain.code') ?? $_ENV['DOMAIN_CODE'] ?? null;
+        if ($code) {
+            $view = $tenant->views()->where('code', $code)->first();
+            if ($view) {
+                return $view;
+            }
+            // If code is set but view not found, log it
+            Log::debug('Tenant view resolution failed: view not found for code', [
+                'host' => $host,
+                'tenant_id' => $tenant->id,
+                'code' => $code,
+            ]);
+        }
+        
+        // Priority 2: Fallback to domain-based lookup
         $view = $tenant->views()->where('domain', $host)->first();
         
         if (!$view) {
