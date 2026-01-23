@@ -33,6 +33,14 @@ class TenancyServiceProvider extends ServiceProvider
             \Stancl\Tenancy\Contracts\Tenant::class,
             Tenant::class
         );
+
+        // Create tenant database on tenant creation
+        \Illuminate\Support\Facades\Event::listen(
+            \Stancl\Tenancy\Events\TenantCreated::class,
+            function (\Stancl\Tenancy\Events\TenantCreated $event) {
+                $event->tenant->database()->manager()->createDatabase($event->tenant);
+            }
+        );
         
         // Configure additional tenant connections when tenancy initializes
         // This allows multiple MySQL connections per tenant (e.g., analytics, read replica)
