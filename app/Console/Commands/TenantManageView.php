@@ -13,7 +13,8 @@ class TenantManageView extends Command
                             {domain : Domain for the view}
                             {--name= : View name (required for add, optional for update)}
                             {--code= : View code (defaults to name)}
-                            {--update : Update existing view instead of creating}';
+                            {--update : Update existing view (renames/merges folders when code changes)}
+                            {--switch : Switch view mapping only (no folder changes)}';
 
     protected $description = 'Add or update a view for a tenant';
 
@@ -75,6 +76,7 @@ class TenantManageView extends Command
 
         $name = $this->option('name');
         $code = $this->option('code');
+        $isSwitch = $this->option('switch');
         $oldCode = $view->code;
         $tenantId = $view->tenant_id;
 
@@ -90,8 +92,12 @@ class TenantManageView extends Command
         }
 
         if ($code && $code !== $oldCode) {
-            // Rename the view folder if code changed
-            $this->renameViewFolder($tenantId, $oldCode, $code);
+            if ($isSwitch) {
+                $this->warn("  Switch-only: skipping folder rename for {$oldCode} → {$code}");
+            } else {
+                // Rename the view folder if code changed
+                $this->renameViewFolder($tenantId, $oldCode, $code);
+            }
             $view->code = $code;
             $this->info("  Updated code: {$oldCode} → {$code}");
         }
@@ -99,7 +105,7 @@ class TenantManageView extends Command
         $view->save();
         
         // Ensure view folders exist (in case code changed)
-        if ($code) {
+        if ($code && !$isSwitch) {
             $this->createViewFolders($tenantId, $code);
         }
         

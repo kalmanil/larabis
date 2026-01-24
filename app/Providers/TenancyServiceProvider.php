@@ -27,6 +27,16 @@ class TenancyServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \Illuminate\Support\Facades\Event::listen(
+            \Stancl\Tenancy\Events\TenancyInitialized::class,
+            \Stancl\Tenancy\Listeners\BootstrapTenancy::class
+        );
+
+        \Illuminate\Support\Facades\Event::listen(
+            \Stancl\Tenancy\Events\TenancyEnded::class,
+            \Stancl\Tenancy\Listeners\RevertToCentralContext::class
+        );
+
         // Bind tenant model contract
         // Using contract interface ensures upgrade safety
         $this->app->bind(
