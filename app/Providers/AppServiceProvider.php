@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Config;
 use Stancl\Tenancy\Events\TenancyInitialized;
 
 class AppServiceProvider extends ServiceProvider
@@ -26,11 +27,35 @@ class AppServiceProvider extends ServiceProvider
         // This ensures tenant context is available when views are resolved
         $this->app['events']->listen(TenancyInitialized::class, function ($event) {
             $this->registerTenantViews();
+            $this->configureTenantAuth();
         });
         
         // Also register on boot for non-tenant requests (backward compatibility)
         // This ensures views are available even if tenancy isn't initialized
         $this->registerTenantViews();
+        
+        // Configure tenant auth if DOMAIN_TENANT_ID is set (early tenant context)
+        $this->configureTenantAuth();
+    }
+    
+    /**
+     * Configure Auth to use tenant-specific User model if available.
+     */
+    protected function configureTenantAuth(): void
+    {
+        $tenantId = $_ENV['DOMAIN_TENANT_ID'] ?? null;
+        
+        if (!$tenantId) {
+            return;
+        }
+        
+        // Check if tenant has a custom User model
+        $tenantUserClass = "App\\Features\\Auth\\Models\\User";
+        $tenantUserPath = base_path("tenants/{$tenantId}/app/Features/Auth/Models/User.php");
+        
+        if (file_exists($tenantUserPath) && class_exists($tenantUserClass)) {
+            Config::set('auth.providers.users.model', $tenantUserClass);
+        }
     }
     
     /**
