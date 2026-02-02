@@ -1,86 +1,86 @@
-# Larabis - Two-Level Multi-Tenancy
+# Larabis
 
-Larabis extends Laravel with a two-level tenancy system using `stancl/tenancy`:
+Two-level multi-tenancy for Laravel using `stancl/tenancy`: **tenants** (separate DB per tenant) and **views** (multiple views per tenant, e.g. `default`, `admin`, `api`).
 
-- **Level 1: Tenants** - Separate databases per tenant
-- **Level 2: Views** - Multiple views per tenant (e.g., `default`, `admin`, `api`)
+## Requirements
+
+- PHP ^8.2, Laravel ^12.0, stancl/tenancy ^3.9
 
 ## Quick Start
 
 ```bash
-# Create tenant with views
+composer install && npm install
+php artisan migrate
 php artisan tenant:create lapp --domains=lapp.test --domains=admin.lapp.test
-
-# Start dev servers
-cd lapp.test && bash run-dev.sh
-cd admin.lapp.test && bash run-dev.sh
 ```
 
-## Documentation
+Add to hosts: `127.0.0.1 lapp.test` and `127.0.0.1 admin.lapp.test`. Run from domain folders (e.g. `lapp.test/run-dev.sh`, `admin.lapp.test/run-dev.sh`) or use a single script like `./run-lapp-dev.sh` from parent.
 
-- [Quick Start](QUICK_START.md) - Get up and running
-- [Tenant Structure](TENANT_STRUCTURE.md) - View organization
-- [View Management](VIEW_MANAGEMENT.md) - Managing tenant views
-- [Tenancy Setup](TENANCY_SETUP.md) - Architecture and configuration
-- [View Structure](VIEW_STRUCTURE.md) - View organization and usage
-- [Code Architecture](ARCHITECTURE.md) - Hybrid structure with traits
-- [Tenant View Logic](TENANT_VIEW_LOGIC.md) - Tenant-specific view logic patterns
+- Default: http://lapp.test:8000  
+- Admin: http://admin.lapp.test:8001
 
-## Key Features
+## Structure
 
-- Domain-based routing with automatic tenant/view detection
-- Tenant-specific views: `tenants/{tenant_id}/resources/views/{code}/` (simplified, no redundant nesting)
-- Tenant-specific code: `tenants/{tenant_id}/app/Features/Pages/...` (simplified paths, namespaces still include tenant name)
-- Automatic folder creation when adding views
-- Complete helper class with context checking methods
-- Support for multiple views per tenant (all equal, no hierarchy)
-- **Three-level trait hierarchy**: Base → View → Tenant → Tenant-View
-- **Tenant-specific view logic**: Admin panels can vary by tenant while sharing base logic
+- **Central DB**: `tenants`, `tenant_views`, domains.
+- **Tenant DBs**: One per tenant (stancl).
+- **Views**: `tenants/{tenant_id}/resources/views/{code}/{name}.blade.php` → path `tenants.{tenant_id}.{code}.{view_name}`.
+- **Tenant code**: `tenants/{tenant_id}/app/...` (autoloaded via `bootstrap/tenant-autoload.php`).
 
-## Helper Methods
-
-The `TenancyHelper` class provides the following methods:
+## TenancyHelper
 
 ```php
 use App\Helpers\TenancyHelper;
 
-// Get current context
-TenancyHelper::currentTenant()      // Get current tenant
-TenancyHelper::currentView()        // Get current view
-
-// Check context
-TenancyHelper::isTenantContext()    // Check if in tenant context
-TenancyHelper::isViewCode('admin')  // Check if current view matches code
-TenancyHelper::isAdminView()        // Check if current view is admin
-
-// View operations
-TenancyHelper::view('home', $data)  // Render tenant-specific view
-TenancyHelper::getViewPath('home')  // Get view path string
-
-// ⚠️ IMPORTANT: Only pass the view name (e.g., 'home', 'login')
-// The helper automatically constructs: tenants.{tenant_id}.{code}.{view_name}
-// DO NOT include view code in the name (e.g., 'admin.login' is wrong)
+TenancyHelper::currentTenant()      // current Tenant or null
+TenancyHelper::currentView()        // current TenantView or null
+TenancyHelper::isTenantContext()    // tenancy initialized
+TenancyHelper::isViewCode('admin')  // current view code
+TenancyHelper::isAdminView()        // isViewCode('admin')
+TenancyHelper::view('home', $data)  // render tenant view
+TenancyHelper::getViewPath('home')  // path string
 ```
 
-## Requirements
+**Important:** Pass only the view name to `TenancyHelper::view()` (e.g. `'home'`, `'login'`). The helper builds `tenants.{tenant_id}.{code}.{view_name}`. Do **not** pass `'admin.login'` (would become `tenants.lapp.admin.admin.login`).
 
-- PHP ^8.2
-- Laravel ^12.0
-- stancl/tenancy ^3.9
+## Commands
 
-## Testing & Monitoring
+```bash
+# Create tenant (single or multiple views)
+php artisan tenant:create mytenant --domains=mytenant.test --domains=admin.mytenant.test
 
-The application includes comprehensive error handling and logging:
+# Add view to existing tenant
+php artisan tenant:view mytenant api.mytenant.test --name=api --code=api
+```
 
-- **Error Handling**: Automatic error logging for tenant initialization failures
-- **Debug Logging**: Tenant resolution failures are logged for troubleshooting
-- **Test Coverage**: Error scenario tests ensure graceful failure handling
+## Trait hierarchy (feature logic)
 
-Run tests:
+Priority: **Tenant-View > Base-View > Tenant > Base.**
+
+- **Base:** `app/Shared/Traits/Base/` — shared logic.
+- **View:** `app/Features/.../Views/{code}/Traits/` — view-specific (e.g. admin), shared across tenants.
+- **Tenant:** `tenants/{id}/app/Features/.../Traits/` — tenant-specific, all views.
+- **Tenant-View:** `tenants/{id}/app/Features/.../Views/{code}/Traits/` — tenant-specific view overrides.
+
+Use `ConstructableTrait` and `traitConstruct{TraitName}()` for trait “constructors”. Resolve conflicts in controllers with `insteadof` (e.g. view trait over tenant trait).
+
+## Domain / request flow
+
+Domain folders (e.g. `lapp.test/`, `admin.lapp.test/`) contain `config.php` with `tenant_id` and `code`. `TenantViewMiddleware` runs first: `TenantResolver` resolves tenant/view from DB, then `tenancy()->initialize($tenant)`, then context is bound to `CurrentTenant` and `CurrentTenantView`.
+
+## Tenant submodules (optional)
+
+Use `setup-tenant-submodule.sh`: set `TENANT_ID` and `REPO_URL`, run script. It creates the tenant repo, adds it as a submodule under `tenants/{id}/`, creates domain folders, and registers the tenant. Clone Larabis with `git clone --recursive` or run `git submodule update --init --recursive`.
+
+## Upgrades (stancl/Laravel)
+
+- **Critical:** `TenantViewMiddleware` must stay first in web middleware; do not reorder resolve → initialize → bind in middleware. Keep `tenant-autoload.php` in composer autoload.
+- Watch: `tenancy()->initialize()`, `tenancy()->initialized`, `HasDatabase`/`HasDomains`, `TenantWithDatabase`.
+- After upgrades run: `php artisan test` (including `UpgradeCompatibility` and tenant/error tests). Check logs for “Tenancy initialization failed” and “Tenant resolution failed”.
+
+## Tests & logging
+
 ```bash
 php artisan test
 ```
 
-Check logs for tenant-related issues:
-- `Tenancy initialization failed` - Database connection or initialization problems
-- `Tenant resolution failed` - Tenant/view not found for domain
+Tenant init failures are logged and re-thrown; resolution failures return null and are logged at debug. Use logs to troubleshoot missing tenants/views.
