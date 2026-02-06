@@ -92,8 +92,8 @@ class TenantResolver
             return null;
         }
         
-        // Priority 1: Check if code is explicitly set in domain config
-        $code = config('domain.code') ?? $_ENV['DOMAIN_CODE'] ?? null;
+        // Priority 1: Check if view or code is explicitly set in domain config (view ?? code)
+        $code = config('domain.view') ?? config('domain.code') ?? $_ENV['DOMAIN_CODE'] ?? null;
         if ($code) {
             $view = $tenant->views()->where('code', $code)->first();
             if ($view) {
@@ -122,15 +122,21 @@ class TenantResolver
     
     /**
      * Resolve both tenant and view from request.
-     * 
+     * Syncs config → DB first when tenant_id is set (config is source of truth).
+     *
      * @param Request $request
      * @return TenantResolutionResult
      */
     public function resolve(Request $request): TenantResolutionResult
     {
+        $host = $request->getHost();
+        if (config('domain.tenant_id')) {
+            app(DomainConfigSync::class)->sync($host);
+        }
+
         $tenant = $this->resolveTenant($request);
         $view = $tenant ? $this->resolveView($request, $tenant) : null;
-        
+
         return new TenantResolutionResult($tenant, $view);
     }
 }

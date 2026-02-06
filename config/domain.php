@@ -15,6 +15,7 @@ return [
     */
 
     'tenant_id' => env('DOMAIN_TENANT_ID'),
+    'view' => env('DOMAIN_VIEW'),       // view code (optional; falls back to code)
     'code' => env('DOMAIN_CODE', 'default'),
     'site_title' => env('DOMAIN_SITE_TITLE'),
     'theme_color' => env('DOMAIN_THEME_COLOR'),
