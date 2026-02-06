@@ -49,44 +49,27 @@ class TenantViewMiddleware
         $resolved = $this->resolver->resolve($request);
         $tenant = $resolved->tenant();
         $view = $resolved->view();
-        
-        // If tenant is resolved, initialize tenancy and bind context
+
+        // Always bind TenantContext (with null tenant/view when none resolved) so controllers can inject it
+        $context = new TenantContext($tenant, $view);
+        app()->instance(CurrentTenant::class, $context);
+        app()->instance(CurrentTenantView::class, $context);
+        app()->instance(TenantContext::class, $context);
+
         if ($tenant) {
             try {
-                // Initialize stancl tenancy FIRST - this establishes the tenant database
-                // connection, fires TenancyInitialized event, and sets up stancl's internal
-                // state. Our custom bindings must come AFTER to ensure stancl's lifecycle
-                // is respected and to avoid interfering with initialization.
                 tenancy()->initialize($tenant);
-                
-                // Bind context AFTER tenancy initialization - this ensures:
-                // 1. Tenant database connection is established
-                // 2. TenancyInitialized event has fired (allows listeners to run)
-                // 3. stancl's internal state is ready
-                // 4. If initialization fails, our bindings won't be set (fail-safe)
-                $context = new TenantContext($tenant, $view);
-                
-                // Bind via contracts for type-safe access
-                app()->instance(CurrentTenant::class, $context);
-                app()->instance(CurrentTenantView::class, $context);
-                
-                // Also bind context itself for direct access
-                app()->instance(TenantContext::class, $context);
             } catch (\Exception $e) {
-                // Log the error for debugging and monitoring
                 Log::error('Tenancy initialization failed', [
                     'tenant_id' => $tenant->id,
                     'domain' => $request->getHost(),
                     'error' => $e->getMessage(),
                     'exception' => get_class($e),
                 ]);
-                
-                // Re-throw the exception so stancl can handle it appropriately
-                // This allows stancl's error handling to work (e.g., showing proper error pages)
                 throw $e;
             }
         }
-        
+
         return $next($request);
     }
 }

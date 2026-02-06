@@ -2,46 +2,47 @@
 
 namespace App\Core\Services;
 
+use App\Tenancy\TenantContext;
 use App\Helpers\TenancyHelper;
 
 /**
  * Tenant Trait Registry
- * 
+ *
  * Dynamically resolves and calls tenant-specific trait methods without requiring
  * changes to shared controller code when adding new tenants.
- * 
- * This service provides upgrade-safe dynamic trait resolution by:
- * - Using only TenancyHelper (which uses contracts, not stancl directly)
- * - Gracefully falling back when tenant-specific code doesn't exist
- * - Following the same trait hierarchy as the hardcoded approach
- * 
+ *
+ * Prefer passing TenantContext (injected) for explicit dependencies; falls back to
+ * container when null for backward compatibility.
+ *
  * Trait Discovery Priority:
  * 1. Tenant-View-Specific: App\Features\Pages\Tenants\{tenant_id}\Views\{view_code}\Traits\PageLogic
  * 2. Tenant-Specific: App\Features\Pages\Tenants\{tenant_id}\Traits\PageLogic
  * 3. View-Specific: App\Features\Pages\Views\{view_code}\Traits\PageLogic
  * 4. Base: App\Shared\Traits\Base\PageLogic
- * 
+ *
  * @see docs/UPGRADES.md for upgrade safety information
  */
 class TenantTraitRegistry
 {
     /**
      * Get data from tenant-specific trait method
-     * 
+     *
      * @param string $methodName Method name to call (e.g., 'getPageData')
      * @param object $caller The calling object (usually $this from controller)
      * @param array $args Additional arguments to pass to the method
+     * @param TenantContext|null $context Injected tenant context, or null to resolve from container
      * @return array|null Returns array data or null if no trait found
      */
-    public static function getData(string $methodName, object $caller, array $args = []): ?array
+    public static function getData(string $methodName, object $caller, array $args = [], ?TenantContext $context = null): ?array
     {
-        $tenant = TenancyHelper::currentTenant();
-        $view = TenancyHelper::currentView();
-        
+        $context = $context ?? (app()->bound(TenantContext::class) ? app(TenantContext::class) : null);
+        $tenant = $context ? $context->getTenant() : TenancyHelper::currentTenant();
+        $view = $context ? $context->getView() : TenancyHelper::currentView();
+
         if (!$tenant) {
             return null;
         }
-        
+
         $tenantId = $tenant->id;
         
         // Priority 1: Tenant-View-Specific (most specific)
@@ -145,19 +146,21 @@ class TenantTraitRegistry
     
     /**
      * Check if a tenant-specific trait exists
-     * 
-     * @param string $methodName Optional method name to check
+     *
+     * @param string|null $methodName Optional method name to check
+     * @param TenantContext|null $context Injected tenant context, or null to resolve from container
      * @return bool True if trait exists (and method exists if specified)
      */
-    public static function hasTrait(?string $methodName = null): bool
+    public static function hasTrait(?string $methodName = null, ?TenantContext $context = null): bool
     {
-        $tenant = TenancyHelper::currentTenant();
-        $view = TenancyHelper::currentView();
-        
+        $context = $context ?? (app()->bound(TenantContext::class) ? app(TenantContext::class) : null);
+        $tenant = $context ? $context->getTenant() : TenancyHelper::currentTenant();
+        $view = $context ? $context->getView() : TenancyHelper::currentView();
+
         if (!$tenant) {
             return false;
         }
-        
+
         $tenantId = $tenant->id;
         
         // Check tenant-view-specific
