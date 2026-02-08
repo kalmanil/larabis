@@ -3,41 +3,21 @@
 namespace App\Features\Pages\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Core\Services\TenantTraitRegistry;
-use App\Features\Pages\Views\default\Traits\PageLogic as DefaultPageLogic;
-use App\Features\Pages\Views\admin\Traits\PageLogic as BaseAdminPageLogic;
+use App\Features\Pages\Contracts\PageDataServiceInterface;
 use App\Tenancy\TenantContext;
 
 /**
- * Page Controller with Dynamic Trait Resolution
+ * Page Controller with service-based page data resolution.
  *
- * Uses TenantTraitRegistry to dynamically discover and call tenant-specific
- * trait methods without requiring code changes when adding new tenants.
- *
- * Tenant context is injected (no static helper) for testability and explicit dependencies.
- *
- * @see TenantTraitRegistry for trait discovery priority
- * @see docs/UPGRADES.md for upgrade safety information
+ * Uses PageDataServiceInterface (resolved per tenant+view by PageDataServiceFactory)
+ * instead of traits. No TenantTraitRegistry.
  */
 class PageController extends Controller
 {
-    use DefaultPageLogic, BaseAdminPageLogic {
-        // Resolve traitConstructPageLogic conflict - use DefaultPageLogic as primary
-        // BaseAdminPageLogic constructor will be called explicitly when needed
-        DefaultPageLogic::traitConstructPageLogic insteadof BaseAdminPageLogic;
-        // Alias BaseAdminPageLogic constructor so it can still be called if needed
-        BaseAdminPageLogic::traitConstructPageLogic as traitConstructAdminPageLogic;
-
-        // Resolve getPageData conflict - use DefaultPageLogic as primary
-        // BaseAdminPageLogic will be used via TenantTraitRegistry or explicit calls
-        DefaultPageLogic::getPageData insteadof BaseAdminPageLogic;
-    }
-
     public function __construct(
-        protected TenantContext $tenantContext
+        protected TenantContext $tenantContext,
+        protected PageDataServiceInterface $pageDataService
     ) {
-        // Initialize default view logic (called for all requests)
-        $this->traitConstructPageLogic();
     }
 
     public function home()
@@ -46,33 +26,18 @@ class PageController extends Controller
             return $this->adminLogin();
         }
 
-        // Default landing page - use dynamic trait resolution
-        $tenantData = TenantTraitRegistry::getData('getPageData', $this, [], $this->tenantContext) ?? [];
-        $defaultData = $this->getPageData();
-        $pageData = array_merge($defaultData, $tenantData);
-
+        $pageData = $this->pageDataService->getPageData();
         return $this->tenantContext->view('home', $pageData);
     }
 
     public function adminLogin()
     {
-        $this->traitConstructAdminPageLogic();
+        $pageData = $this->pageDataService->getPageData();
+        $adminData = $this->pageDataService->getAdminDashboardData();
+        $themeData = $this->pageDataService->getAdminTheme();
 
-        $tenantData = TenantTraitRegistry::getData('getPageData', $this, [], $this->tenantContext) ?? [];
-        $adminData = TenantTraitRegistry::getData('getAdminDashboardData', $this, [], $this->tenantContext) ?? [];
-        $themeData = TenantTraitRegistry::getData('getAdminTheme', $this, [], $this->tenantContext) ?? [];
-
-        if (empty($adminData) && method_exists($this, 'getAdminDashboardData')) {
-            $adminData = $this->getAdminDashboardData();
-        }
-        if (empty($themeData) && method_exists($this, 'getAdminTheme')) {
-            $themeData = $this->getAdminTheme();
-        }
-
-        $defaultData = $this->getPageData();
         $pageData = array_merge(
-            $defaultData,
-            $tenantData,
+            $pageData,
             ['dashboard' => $adminData],
             ['theme' => $themeData]
         );
@@ -80,5 +45,3 @@ class PageController extends Controller
         return $this->tenantContext->view('login', $pageData);
     }
 }
-
-

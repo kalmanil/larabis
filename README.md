@@ -52,16 +52,15 @@ php artisan tenant:create mytenant --domains=mytenant.test --domains=admin.myten
 php artisan tenant:view mytenant api.mytenant.test --name=api --code=api
 ```
 
-## Trait hierarchy (feature logic)
+## Page data services (feature logic)
 
-Priority: **Tenant-View > Base-View > Tenant > Base.**
+Page and admin data are provided by **service classes** (not traits), resolved per tenant and view.
 
-- **Base:** `app/Shared/Traits/Base/` — shared logic.
-- **View:** `app/Features/.../Views/{code}/Traits/` — view-specific (e.g. admin), shared across tenants.
-- **Tenant:** `tenants/{id}/app/Features/.../Traits/` — tenant-specific, all views.
-- **Tenant-View:** `tenants/{id}/app/Features/.../Views/{code}/Traits/` — tenant-specific view overrides.
+- **Contract:** `App\Features\Pages\Contracts\PageDataServiceInterface` — `getPageData()`, `getAdminDashboardData()`, `getAdminTheme()`.
+- **Base:** `app/Features/Pages/Base/Default/PageDataService.php` and `Base/Admin/PageDataService.php` — shared default and admin behavior.
+- **Tenant:** `tenants/{id}/app/Features/Pages/Default/PageDataService.php` and `tenants/{id}/app/Features/Pages/Admin/PageDataService.php` — tenant-specific; extend or compose the base and override as needed.
 
-Use `ConstructableTrait` and `traitConstruct{TraitName}()` for trait “constructors”. Resolve conflicts in controllers with `insteadof` (e.g. view trait over tenant trait).
+`PageDataServiceFactory` resolves the implementation from the current tenant and view (tenant-specific class if it exists, otherwise base). The controller receives `PageDataServiceInterface` via the container. Use the same class name `PageDataService` and namespaces to distinguish Base vs `Tenants\{id}\Default` or `Admin`.
 
 ## Domain / request flow
 

@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Features\Pages\Contracts\PageDataServiceInterface;
+use App\Features\Pages\Services\PageDataServiceFactory;
+use App\Tenancy\TenantContext;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Config;
@@ -16,6 +19,12 @@ class AppServiceProvider extends ServiceProvider
     {
         // Tenant class autoloading is handled by bootstrap/tenant-autoload.php
         // which is loaded via composer.json's "files" autoload array.
+
+        $this->app->bind(PageDataServiceInterface::class, function ($app) {
+            $factory = $app->make(PageDataServiceFactory::class);
+            $context = $app->make(TenantContext::class);
+            return $factory->resolveFromContext($context);
+        });
     }
 
     /**
