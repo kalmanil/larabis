@@ -100,32 +100,13 @@ if (!function_exists('registerTenantAutoloader')) {
     registerTenantAutoloader();
 }
 
-// Auth namespace: load App\Features\Auth\* from current tenant when DOMAIN_TENANT_ID is set
-// (e.g. tenants/flashcards/app/Features/Auth/Controllers/LoginController.php)
-// Domain index.php sets DOMAIN_TENANT_ID before requiring Larabis, so it's available at class resolution time.
-if (!isset($GLOBALS['__tenant_auth_autoload_registered'])) {
-    spl_autoload_register(function ($class) {
-        if (strpos($class, 'App\\Features\\Auth\\') !== 0) {
-            return false;
-        }
-        $tenantId = $_ENV['DOMAIN_TENANT_ID'] ?? null;
-        if (!$tenantId) {
-            return false;
-        }
-        $tenantsPath = __DIR__ . '/../tenants';
-        $appPath = $tenantsPath . DIRECTORY_SEPARATOR . $tenantId . DIRECTORY_SEPARATOR . 'app';
-        if (!is_dir($appPath)) {
-            return false;
-        }
-        $relativePath = str_replace('App\\', '', $class);
-        $relativePath = str_replace('\\', DIRECTORY_SEPARATOR, $relativePath);
-        $filePath = $appPath . DIRECTORY_SEPARATOR . $relativePath . '.php';
-        $filePath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $filePath);
-        if (file_exists($filePath)) {
-            require $filePath;
-            return true;
-        }
-        return false;
-    }, true, false);
-    $GLOBALS['__tenant_auth_autoload_registered'] = true;
+// Load tenant-specific autoloader when DOMAIN_TENANT_ID is set.
+// Each tenant defines its own namespaces in tenants/{tenant_id}/bootstrap/autoload.php
+// This keeps Larabis tenant-agnostic; tenants own their autoload config.
+$tenantId = $_ENV['DOMAIN_TENANT_ID'] ?? null;
+if ($tenantId) {
+    $tenantBootstrap = __DIR__ . '/../tenants/' . $tenantId . '/bootstrap/autoload.php';
+    if (file_exists($tenantBootstrap)) {
+        require $tenantBootstrap;
+    }
 }
