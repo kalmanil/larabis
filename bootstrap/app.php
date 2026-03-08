@@ -4,7 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
-return Application::configure(basePath: dirname(__DIR__))
+$app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
@@ -33,3 +33,23 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
+
+// After the base .env is loaded, overlay the tenant-specific .env (if present).
+// Runs between LoadEnvironmentVariables and LoadConfiguration, so config files
+// already see the merged environment when they call env().
+$app->afterBootstrapping(
+    \Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables::class,
+    function () use ($app): void {
+        $tenantId = $_ENV['DOMAIN_TENANT_ID'] ?? null;
+        if (!$tenantId) {
+            return;
+        }
+        $envFile = $app->basePath("tenants/{$tenantId}/.env");
+        if (!file_exists($envFile)) {
+            return;
+        }
+        \Dotenv\Dotenv::createMutable(dirname($envFile))->safeLoad();
+    }
+);
+
+return $app;
