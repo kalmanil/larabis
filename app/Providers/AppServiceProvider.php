@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Features\Pages\Contracts\PageDataServiceInterface;
 use App\Features\Pages\Services\PageDataServiceFactory;
 use App\Tenancy\TenantContext;
+use App\Tenancy\TenantViewPathConfigurator;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Config;
@@ -42,6 +43,11 @@ class AppServiceProvider extends ServiceProvider
         // Also register on boot for non-tenant requests (backward compatibility)
         // This ensures views are available even if tenancy isn't initialized
         $this->registerTenantViews();
+
+        // Tenant error pages (errors::*) use config('view.paths'); prepend early when domain sets tenant id
+        TenantViewPathConfigurator::prependTenantResourcesViews(
+            $_ENV['DOMAIN_TENANT_ID'] ?? config('domain.tenant_id')
+        );
         
         // Configure tenant auth if DOMAIN_TENANT_ID is set (early tenant context)
         $this->configureTenantAuth();

@@ -6,6 +6,7 @@ use App\Contracts\CurrentTenant;
 use App\Contracts\CurrentTenantView;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantResolver;
+use App\Tenancy\TenantViewPathConfigurator;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -57,6 +58,8 @@ class TenantViewMiddleware
         app()->instance(TenantContext::class, $context);
 
         if ($tenant) {
+            TenantViewPathConfigurator::prependTenantResourcesViews($tenant->id);
+
             try {
                 tenancy()->initialize($tenant);
             } catch (\Exception $e) {
