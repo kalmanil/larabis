@@ -9,6 +9,7 @@ use App\Tenancy\TenantViewPathConfigurator;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Config;
+use Stancl\Tenancy\Commands\Migrate as TenantsMigrate;
 use Stancl\Tenancy\Events\TenancyInitialized;
 
 class AppServiceProvider extends ServiceProvider
@@ -33,6 +34,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // After stancl registers tenants:migrate, use a version that also runs
+        // tenants/{id}/database/migrations (see App\Console\Commands\TenantsMigrateCommand).
+        $this->app->singleton(TenantsMigrate::class, function ($app) {
+            return new \App\Console\Commands\TenantsMigrateCommand(
+                $app['migrator'],
+                $app['events']
+            );
+        });
+
         // Register tenant view namespaces AFTER tenancy is initialized
         // This ensures tenant context is available when views are resolved
         $this->app['events']->listen(TenancyInitialized::class, function ($event) {

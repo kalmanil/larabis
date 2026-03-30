@@ -52,6 +52,15 @@ php artisan tenant:create mytenant --domains=mytenant.test --domains=admin.myten
 php artisan tenant:view mytenant api.mytenant.test --name=api --code=api
 ```
 
+### Tenant database migrations
+
+`php artisan tenants:migrate` runs migrations from **both**:
+
+1. `database/migrations/tenant` — shared tenant tables (auth, etc.)
+2. `tenants/{tenant_id}/database/migrations` — tenant app (e.g. flashcards submodule)
+
+Feature-specific migrations live under the tenant submodule; do not duplicate them in `database/migrations/tenant` unless they are shared across all tenants. Override with `--path` if you need a single directory only.
+
 ## Page data services (feature logic)
 
 Page and admin data are provided by **service classes** (not traits), resolved per tenant and view.

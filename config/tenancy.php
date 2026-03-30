@@ -182,10 +182,13 @@ return [
 
     /**
      * Parameters used by the tenants:migrate command.
+     *
+     * Paths are resolved per tenant by App\Console\Commands\TenantsMigrateCommand:
+     * database/migrations/tenant (shared) and tenants/{id}/database/migrations (submodule).
+     * Omit --path here so both run. Use `php artisan tenants:migrate --path=...` to override.
      */
     'migration_parameters' => [
         '--force' => true, // This needs to be true to run migrations in production.
-        '--path' => [database_path('migrations/tenant')],
         '--realpath' => true,
     ],
 
