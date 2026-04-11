@@ -61,6 +61,24 @@ class AppServiceProvider extends ServiceProvider
         
         // Configure tenant auth if DOMAIN_TENANT_ID is set (early tenant context)
         $this->configureTenantAuth();
+
+        $this->registerFlashcardsCommands();
+    }
+
+    /**
+     * Register flashcards tenant Artisan commands when that tenant is active.
+     */
+    protected function registerFlashcardsCommands(): void
+    {
+        $tenantId = $_ENV['DOMAIN_TENANT_ID'] ?? null;
+        if ($tenantId !== 'flashcards') {
+            return;
+        }
+
+        $path = base_path('tenants/flashcards/app/Features/Flashcards/Console/Commands/EnsureSuperAdminCommand.php');
+        if (file_exists($path)) {
+            $this->commands([\App\Features\Flashcards\Console\Commands\EnsureSuperAdminCommand::class]);
+        }
     }
     
     /**
