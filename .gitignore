@@ -34,3 +34,6 @@ tenants/*
 
 # Cursor rules
 .cursorrules
+
+# SpecStory (local session history & CLI output)
+.specstory/
